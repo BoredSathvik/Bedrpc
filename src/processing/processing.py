@@ -93,7 +93,7 @@ class ProcessingThread(thread.Thread):
             with self.storage.listener_keys_edited_lock:
                 self.storage.listener_keys_edited = False
 
-    @thread.Thread.schedule(seconds=15)
+    @thread.Thread.schedule(seconds=1)
     def update_rich_presence(self):
         """ Update rich presence
         """
@@ -102,7 +102,8 @@ class ProcessingThread(thread.Thread):
             # Feature enabled?
             if self.storage.features["3"]["enabled"]:
                 if "3" in self.gateway.status and not self.gateway.status["3"]:
-                    self.gateway.status["3"] = self.gateway.server_address_check(log=False)
+                    self.gateway.status["3"] = self.gateway.server_address_check(
+                        log=False)
 
                     # Update ui
                     self.references["RootThread"].queue.append(
@@ -169,7 +170,8 @@ class ProcessingThread(thread.Thread):
                     except (pymem.exception.ProcessNotFound, pymem.exception.WinAPIError,
                             pymem.exception.CouldNotOpenProcess) as e:
                         Logger.log(f"Minecraft not found! {e}")
-                        ui.queue_alert_message(self.references, "Minecraft not found!", warning=True)
+                        ui.queue_alert_message(
+                            self.references, "Minecraft not found!", warning=True)
 
                 self.gateway.open_process_from_name("Minecraft.Windows.exe")
                 self.gateway.status_check()
@@ -196,7 +198,8 @@ class ProcessingThread(thread.Thread):
                         self.gateway.status_check()
 
                         root.start_button_var.set("Start")
-                        root.after(10, (lambda: button.configure(state="active")))
+                        root.after(
+                            10, (lambda: button.configure(state="active")))
                         root.config(cursor="arrow")
 
                         return
@@ -220,10 +223,12 @@ class ProcessingThread(thread.Thread):
 
         except (pymem.exception.ProcessNotFound, pymem.exception.WinAPIError, pymem.exception.CouldNotOpenProcess) as e:
             Logger.log(f"Minecraft not found! {e}")
-            ui.queue_alert_message(self.references, "Minecraft not found!", warning=True)
+            ui.queue_alert_message(
+                self.references, "Minecraft not found!", warning=True)
 
         # Cooldown
-        root.after(self.storage.get("settings")["attach_cooldown"], (lambda: button.configure(state="active")))
+        root.after(self.storage.get("settings")[
+                   "attach_cooldown"], (lambda: button.configure(state="active")))
         root.config(cursor="arrow")
 
 
@@ -246,7 +251,8 @@ class Gateway(pymem.Pymem):
         }
 
         # I just dont want to add strings every 20secs
-        self.valid_domain_letters = set(string.ascii_letters + string.digits + "-.")
+        self.valid_domain_letters = set(
+            string.ascii_letters + string.digits + "-.")
         self.fallback_server_address = None
 
         self.current_mc_version = None
@@ -274,10 +280,12 @@ class Gateway(pymem.Pymem):
 
             for i, offs in enumerate(offset_outer):
                 # Find the address
-                temp = RemotePointer(self.process_handle, self.process_base.lpBaseOfDll + offs[0])
+                temp = RemotePointer(self.process_handle,
+                                     self.process_base.lpBaseOfDll + offs[0])
 
                 for offset in offs[1:-1]:
-                    temp = RemotePointer(self.process_handle, temp.value + offset)
+                    temp = RemotePointer(
+                        self.process_handle, temp.value + offset)
 
                 # Add it
                 addresses[feature_id].append(temp.value + offs[-1])
@@ -320,8 +328,10 @@ class Gateway(pymem.Pymem):
                     if self.storage.features.presets[_feature_id]["g"].listener:
                         for _key, _value in _feature_value["settings"].items():
                             if not _value or _value == " ":
-                                _feature_value["settings"][_key] = (new_value := str(self.read_address(_feature_id)))
-                                self.storage.features.tk_vars[_feature_id]["settings"][_key].set(new_value)
+                                _feature_value["settings"][_key] = (
+                                    new_value := str(self.read_address(_feature_id)))
+                                self.storage.features.tk_vars[_feature_id]["settings"][_key].set(
+                                    new_value)
 
                     # Keep track
                     _done.add(_feature_id)
@@ -361,7 +371,8 @@ class Gateway(pymem.Pymem):
 
             # If it needs to be decoded
             if "s_decode" in presets:
-                value = self.storage.features.presets[feature_id]["s_decode"](value)
+                value = self.storage.features.presets[feature_id]["s_decode"](
+                    value)
 
             return value
 
@@ -380,7 +391,8 @@ class Gateway(pymem.Pymem):
 
             # If it needs to be encoded
             if "s_encode" in presets:
-                new = self.storage.features.presets[feature_id]["s_encode"](new)
+                new = self.storage.features.presets[feature_id]["s_encode"](
+                    new)
 
             # Write
             return getattr(self, f"write_{presets['a_type']}")(self.storage.features.addresses[feature_id][index], new,
@@ -483,13 +495,15 @@ class Gateway(pymem.Pymem):
             except (pymem.exception.MemoryReadError, pymem.exception.WinAPIError, UnicodeDecodeError, Exception):
                 try:
                     # Reread port
-                    port = self.read_int(self.storage.features.addresses["3"][1])
+                    port = self.read_int(
+                        self.storage.features.addresses["3"][1])
 
                     # If not done already, get fallback server address
                     if not self.fallback_server_address:
                         self.fallback_server_address = self.get_fallback_server_address()
 
-                    server = self.read_string(self.fallback_server_address, 253)
+                    server = self.read_string(
+                        self.fallback_server_address, 253)
 
                     if port == 19132:
                         return server
@@ -513,7 +527,8 @@ class Gateway(pymem.Pymem):
         self.status["Connected"] = bool(self.process_handle)
 
         # Check the minecraft version
-        self.status["Version"] = bool(self.current_mc_version == self.storage.get("mc_version"))
+        self.status["Version"] = bool(
+            self.current_mc_version == self.storage.get("mc_version"))
 
         if self.storage.features:
             # Addresses
@@ -528,7 +543,8 @@ class Gateway(pymem.Pymem):
 
                     # Custom check
                     elif "a_status_check" in self.storage.features.presets[addr_id]:
-                        status = self.storage.features.presets[addr_id]["a_status_check"](self)
+                        status = self.storage.features.presets[addr_id]["a_status_check"](
+                            self)
 
                     # Else just try to read
                     else:
